@@ -24,6 +24,7 @@ TaskFlow Web is a modern, full-stack Next.js application designed to help users 
   - `lib/`: Shared utilities and library configurations.
     - `actions.ts`: Next.js Server Actions serving as the backend API.
     - `prisma.ts`: Prisma client instantiation.
+    - `resend.ts`: Utility for sending OTP emails via the Resend API.
 
 ## API Information
 
@@ -46,9 +47,13 @@ npm install
 ```
 
 2. Configure Environment Variables
-Create a `.env` file in the root of your project and add your PostgreSQL connection string:
+Create a `.env` file in the root of your project and add your PostgreSQL connection string along with your Resend API credentials:
 ```env
 DATABASE_URL="postgresql://username:password@localhost:5432/taskflow?schema=public"
+
+# Resend Mail Configuration for OTPs
+RESEND_API_KEY="re_your_resend_api_key"
+RESEND_FROM_EMAIL="onboarding@resend.dev"
 ```
 
 3. Initialize the Database
@@ -70,6 +75,6 @@ Open `http://localhost:3000` in your browser to view the application.
 1. Push your code to a GitHub, GitLab, or Bitbucket repository.
 2. Log in to Vercel and click "Add New Project".
 3. Import your repository from your Git provider.
-4. In the "Environment Variables" section, add your `DATABASE_URL` pointing to your production PostgreSQL database.
+4. In the "Environment Variables" section, add your `DATABASE_URL` pointing to your production PostgreSQL database. Also, add your `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to enable OTP emails.
 5. Vercel will automatically detect that this is a Next.js project. The `package.json` includes a `postinstall` script that will automatically run `prisma generate` during the build process.
 6. Click "Deploy". Vercel will build and host your application automatically.
