@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 export default function Home() {
   const [isFilterModalOpen, setFilterModalOpen] = useState(false);
   const [isSortModalOpen, setSortModalOpen] = useState(false);
-  const [isEditTaskOpen, setEditTaskOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<any | null>(null);
   const [isProfileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const router = useRouter();
   const { tasks, isLoading, updateStatus, removeTask, isAuth, logoutUser } = useTasks();
@@ -25,7 +25,7 @@ export default function Home() {
   const [filterTags, setFilterTags] = useState<string[]>([]);
   
   // Sort
-  const [sortOption, setSortOption] = useState<'priority' | 'date'>('priority');
+  const [sortOption, setSortOption] = useState<'priority-desc' | 'priority-asc' | 'date-desc' | 'date-asc'>('priority-desc');
 
   const togglePriority = (p: string) => setFilterPriority(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
   const toggleTag = (t: string) => setFilterTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
@@ -34,6 +34,8 @@ export default function Home() {
     await logoutUser();
     setProfileDropdownOpen(false);
   };
+
+  const allTags = Array.from(new Set((tasks || []).flatMap((t: any) => t.tags || [])));
 
   const filteredTasks = (tasks || [])
     .filter(task => {
@@ -63,16 +65,30 @@ export default function Home() {
       return true;
     })
     .sort((a, b) => {
-      if (sortOption === 'priority') {
-        const pOrder: Record<string, number> = { 'High': 3, 'Med': 2, 'Low': 1 };
-        const pA = pOrder[a.priority || 'Med'] || 0;
-        const pB = pOrder[b.priority || 'Med'] || 0;
-        if (pA !== pB) return pB - pA;
-      }
-      // Date sort (newest first based on createdAt or dueDate fallback)
+      const pOrder: Record<string, number> = { 'High': 3, 'Med': 2, 'Low': 1 };
+      const pA = pOrder[a.priority || 'Med'] || 0;
+      const pB = pOrder[b.priority || 'Med'] || 0;
+      
       const dateA = new Date(a.createdAt || a.dueDate || 0).getTime();
       const dateB = new Date(b.createdAt || b.dueDate || 0).getTime();
-      return dateB - dateA;
+      
+      if (sortOption === 'priority-desc') {
+        if (pA !== pB) return pB - pA;
+        return dateB - dateA;
+      }
+      if (sortOption === 'priority-asc') {
+        if (pA !== pB) return pA - pB;
+        return dateB - dateA;
+      }
+      if (sortOption === 'date-desc') {
+        if (dateA !== dateB) return dateB - dateA;
+        return pB - pA;
+      }
+      if (sortOption === 'date-asc') {
+        if (dateA !== dateB) return dateA - dateB;
+        return pB - pA;
+      }
+      return 0;
     });
 
   return (
@@ -158,7 +174,7 @@ export default function Home() {
               filteredTasks.map((task: any) => {
                 const isCompleted = task.status === 'completed';
                 return (
-                  <div key={task.id} className={`task-item bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition border border-slate-200 ${isCompleted ? 'opacity-75 bg-white/60' : ''}`} onClick={() => setEditTaskOpen(true)}>
+                  <div key={task.id} className={`task-item bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition border border-slate-200 ${isCompleted ? 'opacity-75 bg-white/60' : ''}`} onClick={() => setEditingTask(task)}>
                     <button className="text-slate-300 hover:text-slate-500 cursor-grab" onClick={(e) => e.stopPropagation()}><i className="fa-solid fa-grip-vertical"></i></button>
                     <input 
                       type="checkbox" 
@@ -241,22 +257,16 @@ export default function Home() {
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Tags</label>
             <div className="flex flex-wrap gap-2">
-              <label className="cursor-pointer">
-                <input type="checkbox" checked={filterTags.includes('Work')} onChange={() => toggleTag('Work')} className="peer sr-only" />
-                <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">Work</span>
-              </label>
-              <label className="cursor-pointer">
-                <input type="checkbox" checked={filterTags.includes('Design')} onChange={() => toggleTag('Design')} className="peer sr-only" />
-                <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">Design</span>
-              </label>
-              <label className="cursor-pointer">
-                <input type="checkbox" checked={filterTags.includes('Research')} onChange={() => toggleTag('Research')} className="peer sr-only" />
-                <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">Research</span>
-              </label>
-              <label className="cursor-pointer">
-                <input type="checkbox" checked={filterTags.includes('Personal')} onChange={() => toggleTag('Personal')} className="peer sr-only" />
-                <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">Personal</span>
-              </label>
+              {allTags.length === 0 ? (
+                <span className="text-sm text-slate-500">No tags found.</span>
+              ) : (
+                allTags.map((tag: any, i: number) => (
+                  <label key={i} className="cursor-pointer">
+                    <input type="checkbox" checked={filterTags.includes(tag)} onChange={() => toggleTag(tag)} className="peer sr-only" />
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">{tag}</span>
+                  </label>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -274,18 +284,32 @@ export default function Home() {
         </div>
         <div className="px-6 py-5">
           <div className="flex flex-col gap-2">
-            <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl border transition ${sortOption === 'priority' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'}`}>
-              <input type="radio" name="sortOptions" checked={sortOption === 'priority'} onChange={() => setSortOption('priority')} className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-brand-500" />
+            <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl border transition ${sortOption === 'priority-desc' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input type="radio" name="sortOptions" checked={sortOption === 'priority-desc'} onChange={() => setSortOption('priority-desc')} className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-brand-500" />
               <div className="flex flex-col">
-                <span className={`text-sm font-bold ${sortOption === 'priority' ? 'text-brand-900' : 'text-slate-800'}`}>Priority</span>
-                <span className={`text-xs font-medium ${sortOption === 'priority' ? 'text-brand-600' : 'text-slate-500'}`}>High to Low</span>
+                <span className={`text-sm font-bold ${sortOption === 'priority-desc' ? 'text-brand-900' : 'text-slate-800'}`}>Priority</span>
+                <span className={`text-xs font-medium ${sortOption === 'priority-desc' ? 'text-brand-600' : 'text-slate-500'}`}>High to Low</span>
               </div>
             </label>
-            <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl border transition ${sortOption === 'date' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'}`}>
-              <input type="radio" name="sortOptions" checked={sortOption === 'date'} onChange={() => setSortOption('date')} className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-slate-300" />
+            <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl border transition ${sortOption === 'priority-asc' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input type="radio" name="sortOptions" checked={sortOption === 'priority-asc'} onChange={() => setSortOption('priority-asc')} className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-brand-500" />
               <div className="flex flex-col">
-                <span className={`text-sm font-bold ${sortOption === 'date' ? 'text-brand-900' : 'text-slate-800'}`}>Date</span>
-                <span className={`text-xs font-medium ${sortOption === 'date' ? 'text-brand-600' : 'text-slate-500'}`}>Newest first</span>
+                <span className={`text-sm font-bold ${sortOption === 'priority-asc' ? 'text-brand-900' : 'text-slate-800'}`}>Priority</span>
+                <span className={`text-xs font-medium ${sortOption === 'priority-asc' ? 'text-brand-600' : 'text-slate-500'}`}>Low to High</span>
+              </div>
+            </label>
+            <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl border transition ${sortOption === 'date-desc' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input type="radio" name="sortOptions" checked={sortOption === 'date-desc'} onChange={() => setSortOption('date-desc')} className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-slate-300" />
+              <div className="flex flex-col">
+                <span className={`text-sm font-bold ${sortOption === 'date-desc' ? 'text-brand-900' : 'text-slate-800'}`}>Date</span>
+                <span className={`text-xs font-medium ${sortOption === 'date-desc' ? 'text-brand-600' : 'text-slate-500'}`}>Newest first</span>
+              </div>
+            </label>
+            <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl border transition ${sortOption === 'date-asc' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input type="radio" name="sortOptions" checked={sortOption === 'date-asc'} onChange={() => setSortOption('date-asc')} className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-slate-300" />
+              <div className="flex flex-col">
+                <span className={`text-sm font-bold ${sortOption === 'date-asc' ? 'text-brand-900' : 'text-slate-800'}`}>Date</span>
+                <span className={`text-xs font-medium ${sortOption === 'date-asc' ? 'text-brand-600' : 'text-slate-500'}`}>Oldest first</span>
               </div>
             </label>
           </div>
@@ -296,60 +320,61 @@ export default function Home() {
       </Modal>
 
       {/* Edit Task Offcanvas */}
-      <Offcanvas isOpen={isEditTaskOpen} onClose={() => setEditTaskOpen(false)} title="Edit Task">
-        <div className="flex flex-col h-full">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6 pb-6 border-b border-slate-100">Review Q3 Performance Metrics</h2>
-          
-          <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
-          <textarea 
-            className="w-full rounded-xl border border-slate-200 p-4 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 outline-none mb-8 min-h-[140px] resize-y" 
-            defaultValue="Compile and analyze the data from all regional offices regarding the Q3 performance. Specifically, look into the unexpected dip in the EMEA region and provide a summary of potential causes based on the CRM logs." 
-          />
+      <Offcanvas isOpen={!!editingTask} onClose={() => setEditingTask(null)} title="Edit Task">
+        {editingTask && (
+          <div className="flex flex-col h-full" key={editingTask.id}>
+            <h2 className="text-2xl font-bold text-slate-900 mb-6 pb-6 border-b border-slate-100">{editingTask.title}</h2>
+            
+            <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+            <textarea 
+              className="w-full rounded-xl border border-slate-200 p-4 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-brand-500 outline-none mb-8 min-h-[140px] resize-y" 
+              defaultValue={editingTask.description || ""} 
+            />
 
-          <label className="block text-sm font-medium text-slate-700 mb-2">Tags</label>
-          <div className="flex flex-wrap items-center gap-2 p-2 mb-8 w-full rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-brand-500 transition cursor-text">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-500 text-white text-xs font-medium cursor-default">
-              Work <button className="hover:text-slate-200"><i className="fa-solid fa-xmark text-[10px]"></i></button>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-500 text-white text-xs font-medium cursor-default">
-              Urgent <button className="hover:text-slate-200"><i className="fa-solid fa-xmark text-[10px]"></i></button>
-            </span>
-            <input type="text" placeholder="Add a tag..." className="flex-1 bg-transparent border-0 min-w-[120px] text-sm focus:ring-0 outline-none px-2 text-slate-700 placeholder-slate-400" />
-          </div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Tags</label>
+            <div className="flex flex-wrap items-center gap-2 p-2 mb-8 w-full rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-brand-500 transition cursor-text">
+              {editingTask.tags?.map((tag: string, i: number) => (
+                <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-500 text-white text-xs font-medium cursor-default">
+                  {tag} <button className="hover:text-slate-200"><i className="fa-solid fa-xmark text-[10px]"></i></button>
+                </span>
+              ))}
+              <input type="text" placeholder="Add a tag..." className="flex-1 bg-transparent border-0 min-w-[120px] text-sm focus:ring-0 outline-none px-2 text-slate-700 placeholder-slate-400" />
+            </div>
 
-          <div className="grid grid-cols-2 gap-8 mb-8">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Due Date</label>
-              <div className="relative">
-                <i className="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-base pointer-events-none"></i>
-                <input type="text" defaultValue="15/11/2023" className="w-full rounded-lg border border-slate-200 py-2.5 pr-4 pl-12 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none bg-white" />
+            <div className="grid grid-cols-2 gap-8 mb-8">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Due Date</label>
+                <div className="relative">
+                  <i className="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-base pointer-events-none"></i>
+                  <input type="text" defaultValue={editingTask.dueDate ? new Date(editingTask.dueDate).toLocaleDateString() : ""} placeholder="No due date" className="w-full rounded-lg border border-slate-200 py-2.5 pr-4 pl-12 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-brand-500 outline-none bg-white" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Priority</label>
+                <div className="flex text-sm font-medium">
+                  <button className={`flex-1 py-2.5 border ${editingTask.priority === 'Low' ? 'border-brand-500 text-brand-900 bg-brand-50 shadow-sm' : 'border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition'} rounded-l-lg`} style={editingTask.priority === 'Low' ? { boxShadow: 'inset 0 0 0 1px #6b66fa' } : {}}>Low</button>
+                  <button className={`flex-1 py-2.5 border ${(!editingTask.priority || editingTask.priority === 'Med') ? 'border-brand-500 text-brand-900 bg-brand-50 shadow-sm' : 'border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition'} -mx-px z-10`} style={(!editingTask.priority || editingTask.priority === 'Med') ? { boxShadow: 'inset 0 0 0 1px #6b66fa' } : {}}>Med</button>
+                  <button className={`flex-1 py-2.5 border ${editingTask.priority === 'High' ? 'border-brand-500 text-brand-900 bg-brand-50 shadow-sm' : 'border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition'} rounded-r-lg`} style={editingTask.priority === 'High' ? { boxShadow: 'inset 0 0 0 1px #6b66fa' } : {}}>High</button>
+                </div>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Priority</label>
-              <div className="flex text-sm font-medium">
-                <button className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-l-lg hover:bg-slate-50 transition bg-white">Low</button>
-                <button className="flex-1 py-2.5 border border-brand-500 text-brand-900 bg-brand-50 -mx-px z-10 shadow-sm" style={{ boxShadow: 'inset 0 0 0 1px #6b66fa' }}>Med</button>
-                <button className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-r-lg hover:bg-slate-50 transition bg-white">High</button>
+
+            <label className="flex items-center gap-3 cursor-pointer border-b border-slate-100 pb-8 mt-auto">
+              <input type="checkbox" defaultChecked={editingTask.status === 'completed'} className="w-5 h-5 rounded border-slate-300 text-brand-500 focus:ring-brand-500" />
+              <span className="text-sm font-medium text-slate-700">Mark as Complete</span>
+            </label>
+
+            <div className="pt-5 flex justify-between items-center mt-6">
+              <button onClick={() => { removeTask(editingTask.id); setEditingTask(null); }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition">
+                <i className="fa-regular fa-trash-can"></i> Delete Task
+              </button>
+              <div className="flex gap-3">
+                <button onClick={() => setEditingTask(null)} className="px-6 py-2.5 rounded-xl bg-brand-100 text-brand-900 text-sm font-semibold hover:bg-brand-200 transition">Cancel</button>
+                <button onClick={() => setEditingTask(null)} className="px-6 py-2.5 rounded-xl bg-brand-900 text-white text-sm font-semibold hover:bg-brand-800 transition shadow-sm">Save Changes</button>
               </div>
             </div>
           </div>
-
-          <label className="flex items-center gap-3 cursor-pointer border-b border-slate-100 pb-8 mt-auto">
-            <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-brand-500 focus:ring-brand-500" />
-            <span className="text-sm font-medium text-slate-700">Mark as Complete</span>
-          </label>
-
-          <div className="pt-5 flex justify-between items-center mt-6">
-            <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition">
-              <i className="fa-regular fa-trash-can"></i> Delete Task
-            </button>
-            <div className="flex gap-3">
-              <button onClick={() => setEditTaskOpen(false)} className="px-6 py-2.5 rounded-xl bg-brand-100 text-brand-900 text-sm font-semibold hover:bg-brand-200 transition">Cancel</button>
-              <button onClick={() => setEditTaskOpen(false)} className="px-6 py-2.5 rounded-xl bg-brand-900 text-white text-sm font-semibold hover:bg-brand-800 transition shadow-sm">Save Changes</button>
-            </div>
-          </div>
-        </div>
+        )}
       </Offcanvas>
 
     </div>
