@@ -100,17 +100,17 @@ export default function Home() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <header className="border-b border-slate-200 h-16 flex items-center justify-between px-8 flex-shrink-0 bg-white">
+      <header className="border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 bg-white">
         <div>
           <Link href="/" className="text-2xl font-bold text-brand-900 text-decoration-none hover:text-brand-800 transition">TaskFlow</Link>
         </div>
         <div className="flex items-center gap-6">
           <div className="relative">
             <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tasks..." className="bg-slate-100 rounded-lg pl-9 pr-8 py-2 text-sm w-64 border-0 focus:ring-2 focus:ring-brand-500 placeholder-slate-400 outline-none" />
+            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="bg-slate-100 rounded-lg pl-9 pr-8 py-2 text-sm w-32 sm:w-64 border-0 focus:ring-2 focus:ring-brand-500 placeholder-slate-400 outline-none transition-all" />
             {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i className="fa-solid fa-xmark"></i></button>}
           </div>
-          <button className="text-slate-500 hover:text-slate-800 text-lg transition"><i className="fa-regular fa-bell"></i></button>
+          <button className="hidden sm:block text-slate-500 hover:text-slate-800 text-lg transition"><i className="fa-regular fa-bell"></i></button>
           {isAuth ? (
             <div className="relative">
               <button onClick={() => setProfileDropdownOpen(!isProfileDropdownOpen)} className="w-8 h-8 rounded-full bg-slate-300 overflow-hidden cursor-pointer border border-slate-200 block hover:ring-2 hover:ring-brand-500 transition focus:outline-none">
@@ -133,16 +133,16 @@ export default function Home() {
       </header>
 
       {/* Content Scrollable */}
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           
           {/* Page Title & Filters */}
-          <div className="flex items-end justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
             <div>
               <h2 className="text-3xl font-bold text-slate-900 mb-1">Today's Focus</h2>
               <p className="text-slate-500 text-sm">You have {filteredTasks.filter(t => t.status !== 'completed').length || 0} tasks to complete.</p>
             </div>
-            <div className="flex gap-2 text-sm font-medium">
+            <div className="flex flex-wrap gap-2 text-sm font-medium">
               <button onClick={() => setActiveTab('All')} className={`filter-btn px-5 py-1.5 border border-transparent rounded-full transition ${activeTab === 'All' ? 'active' : 'hover:bg-slate-100'}`}>All</button>
               <button onClick={() => setActiveTab('Active')} className={`filter-btn px-4 py-1.5 border border-transparent rounded-full transition ${activeTab === 'Active' ? 'active' : 'hover:bg-slate-100'}`}>Active</button>
               <button onClick={() => setActiveTab('Completed')} className={`filter-btn px-4 py-1.5 border border-transparent rounded-full transition ${activeTab === 'Completed' ? 'active' : 'hover:bg-slate-100'}`}>Completed</button>
@@ -161,7 +161,7 @@ export default function Home() {
           </Link>
 
           {/* Sort & Filter Bar */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-6">
             <button onClick={() => setFilterModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition">
               <i className="fa-solid fa-filter text-slate-400"></i> Filter Tasks
             </button>
@@ -180,22 +180,24 @@ export default function Home() {
               paginatedTasks.map((task: any) => {
                 const isCompleted = task.status === 'completed';
                 return (
-                  <div key={task.id} className={`task-item bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition border border-slate-200 ${isCompleted ? 'opacity-75 bg-white/60' : ''}`} onClick={() => setEditingTask(task)}>
-                    <button className="text-slate-300 hover:text-slate-500 cursor-grab" onClick={(e) => e.stopPropagation()}><i className="fa-solid fa-grip-vertical"></i></button>
-                    <input 
-                      type="checkbox" 
-                      checked={isCompleted}
-                      onChange={() => updateStatus(task.id, isCompleted ? 'todo' : 'completed')}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-5 h-5 rounded border-slate-300 text-brand-500 focus:ring-brand-500 cursor-pointer" 
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`font-semibold truncate task-title ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{task.title}</h4>
-                      <div className={`flex items-center text-xs mt-1 gap-1 ${isCompleted ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {task.dueDate && <><i className="fa-regular fa-calendar"></i> {new Date(task.dueDate).toLocaleDateString()}</>}
+                  <div key={task.id} className={`task-item bg-white rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 cursor-pointer hover:shadow-md transition border border-slate-200 ${isCompleted ? 'opacity-75 bg-white/60' : ''}`} onClick={() => setEditingTask(task)}>
+                    <div className="flex items-center gap-3 w-full sm:w-auto flex-1 min-w-0">
+                      <button className="text-slate-300 hover:text-slate-500 cursor-grab" onClick={(e) => e.stopPropagation()}><i className="fa-solid fa-grip-vertical"></i></button>
+                      <input 
+                        type="checkbox" 
+                        checked={isCompleted}
+                        onChange={() => updateStatus(task.id, isCompleted ? 'todo' : 'completed')}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-5 h-5 rounded border-slate-300 text-brand-500 focus:ring-brand-500 cursor-pointer flex-shrink-0" 
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`font-semibold truncate task-title ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{task.title}</h4>
+                        <div className={`flex items-center text-xs mt-1 gap-1 ${isCompleted ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {task.dueDate && <><i className="fa-regular fa-calendar"></i> {new Date(task.dueDate).toLocaleDateString()}</>}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 ml-8 sm:ml-0 flex-wrap">
                       <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${task.priority === 'High' ? 'bg-red-100 text-red-600' : task.priority === 'Low' ? 'bg-slate-100 text-slate-600' : 'bg-brand-50 text-brand-700'}`}>
                         {task.priority || 'Med'}
                       </span>

@@ -22,7 +22,7 @@ export default function Offcanvas({ isOpen, onClose, title, children }: Offcanva
       
       {/* Offcanvas Panel */}
       <div 
-        className={`fixed top-0 right-0 h-full w-[400px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
           <h5 className="text-lg font-bold text-slate-900">{title}</h5>
