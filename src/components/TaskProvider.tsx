@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import db, { LocalTask } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getTasks, createTask, updateTaskStatus, deleteTask, syncTasks } from '@/lib/actions';
+import { logout } from '@/lib/auth-actions';
 
 type TaskContextType = {
   tasks: any[];
@@ -14,6 +15,7 @@ type TaskContextType = {
   removeTask: (id: string) => Promise<void>;
   syncLocalToCloud: () => Promise<void>;
   setAuth: (val: boolean) => void;
+  logoutUser: () => Promise<void>;
 };
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -92,8 +94,14 @@ export function TaskProvider({ children, initialIsAuth }: { children: React.Reac
     }
   };
 
+  const logoutUser = async () => {
+    await logout();
+    setAuth(false);
+    setServerTasks([]);
+  };
+
   return (
-    <TaskContext.Provider value={{ tasks, isAuth, isLoading, addTask, updateStatus, removeTask, syncLocalToCloud, setAuth }}>
+    <TaskContext.Provider value={{ tasks, isAuth, isLoading, addTask, updateStatus, removeTask, syncLocalToCloud, setAuth, logoutUser }}>
       {children}
     </TaskContext.Provider>
   );

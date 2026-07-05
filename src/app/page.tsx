@@ -5,12 +5,20 @@ import Link from 'next/link';
 import Modal from '@/components/Modal';
 import Offcanvas from '@/components/Offcanvas';
 import { useTasks } from '@/components/TaskProvider';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [isFilterModalOpen, setFilterModalOpen] = useState(false);
   const [isSortModalOpen, setSortModalOpen] = useState(false);
   const [isEditTaskOpen, setEditTaskOpen] = useState(false);
-  const { tasks, isLoading, updateStatus, removeTask, isAuth } = useTasks();
+  const [isProfileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const router = useRouter();
+  const { tasks, isLoading, updateStatus, removeTask, isAuth, logoutUser } = useTasks();
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setProfileDropdownOpen(false);
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -27,9 +35,18 @@ export default function Home() {
           </div>
           <button className="text-slate-500 hover:text-slate-800 text-lg transition"><i className="fa-regular fa-bell"></i></button>
           {isAuth ? (
-            <Link href="/auth" className="w-8 h-8 rounded-full bg-slate-300 overflow-hidden cursor-pointer border border-slate-200 block hover:ring-2 hover:ring-brand-500 transition">
-              <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" className="w-full h-full object-cover" />
-            </Link>
+            <div className="relative">
+              <button onClick={() => setProfileDropdownOpen(!isProfileDropdownOpen)} className="w-8 h-8 rounded-full bg-slate-300 overflow-hidden cursor-pointer border border-slate-200 block hover:ring-2 hover:ring-brand-500 transition focus:outline-none">
+                <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" className="w-full h-full object-cover" />
+              </button>
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 transition flex items-center gap-2">
+                    <i className="fa-solid fa-arrow-right-from-bracket"></i> Logout
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <Link href="/auth" className="bg-brand-900 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-brand-800 transition hover:shadow-md hover:underline">
               Sign In
