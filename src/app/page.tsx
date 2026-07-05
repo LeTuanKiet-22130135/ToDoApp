@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Modal from '@/components/Modal';
 import Offcanvas from '@/components/Offcanvas';
+import { useTasks } from '@/components/TaskProvider';
 
 export default function Home() {
   const [isFilterModalOpen, setFilterModalOpen] = useState(false);
   const [isSortModalOpen, setSortModalOpen] = useState(false);
   const [isEditTaskOpen, setEditTaskOpen] = useState(false);
+  const { tasks, isLoading, updateStatus, removeTask } = useTasks();
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -38,7 +40,7 @@ export default function Home() {
           <div className="flex items-end justify-between mb-8">
             <div>
               <h2 className="text-3xl font-bold text-slate-900 mb-1">Today's Focus</h2>
-              <p className="text-slate-500 text-sm">You have 4 tasks to complete.</p>
+              <p className="text-slate-500 text-sm">You have {tasks?.filter(t => t.status !== 'completed').length || 0} tasks to complete.</p>
             </div>
             <div className="flex gap-2 text-sm font-medium">
               <button className="filter-btn active px-5 py-1.5 border border-transparent rounded-full transition">All</button>
@@ -70,53 +72,41 @@ export default function Home() {
 
           {/* Task List */}
           <div className="flex flex-col gap-3">
-            {/* Task 1 */}
-            <div className="task-item bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition border border-slate-200" onClick={() => setEditTaskOpen(true)}>
-              <button className="text-slate-300 hover:text-slate-500 cursor-grab" onClick={(e) => e.stopPropagation()}><i className="fa-solid fa-grip-vertical"></i></button>
-              <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-brand-500 focus:ring-brand-500 cursor-pointer pointer-events-none" />
-              <div className="flex-1 min-w-0">
-                <h4 className="text-slate-800 font-semibold truncate task-title">Finalize Q3 Marketing Strategy</h4>
-                <div className="flex items-center text-xs text-slate-500 mt-1 gap-1">
-                  <i className="fa-regular fa-calendar"></i> Today, 2:00 PM
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-600">High</span>
-                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-brand-500 text-white">Work</span>
-                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-brand-500 text-white">Research</span>
-              </div>
-            </div>
-
-            {/* Task 2 */}
-            <div className="task-item bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition border border-slate-200" onClick={() => setEditTaskOpen(true)}>
-              <button className="text-slate-300 hover:text-slate-500 cursor-grab" onClick={(e) => e.stopPropagation()}><i className="fa-solid fa-grip-vertical"></i></button>
-              <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-brand-500 focus:ring-brand-500 cursor-pointer pointer-events-none" />
-              <div className="flex-1 min-w-0">
-                <h4 className="text-slate-800 font-semibold truncate task-title">Review design mocks for Dashboard</h4>
-                <div className="flex items-center text-xs text-slate-500 mt-1 gap-1">
-                  <i className="fa-regular fa-calendar"></i> Today, 5:00 PM
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600">Med</span>
-                <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-brand-500 text-white">Design</span>
-              </div>
-            </div>
-
-            {/* Task 3 (Completed) */}
-            <div className="task-item completed bg-white/60 rounded-xl p-4 flex items-center gap-4 opacity-75 cursor-pointer hover:shadow-md transition border border-slate-200" onClick={() => setEditTaskOpen(true)}>
-              <button className="text-slate-200 cursor-grab" onClick={(e) => e.stopPropagation()}><i className="fa-solid fa-grip-vertical"></i></button>
-              <input type="checkbox" defaultChecked className="w-5 h-5 rounded border-slate-300 text-brand-500 focus:ring-brand-500 cursor-pointer pointer-events-none" />
-              <div className="flex-1 min-w-0">
-                <h4 className="task-title font-medium truncate text-slate-400 line-through">Weekly team sync</h4>
-                <div className="flex items-center text-xs text-slate-400 mt-1 gap-1">
-                  <i className="fa-regular fa-calendar"></i> Today, 10:00 AM
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-500">Low</span>
-              </div>
-            </div>
+            {isLoading ? (
+              <div className="text-center py-8 text-slate-400">Loading tasks...</div>
+            ) : tasks?.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">No tasks yet. Create one!</div>
+            ) : (
+              tasks?.map((task: any) => {
+                const isCompleted = task.status === 'completed';
+                return (
+                  <div key={task.id} className={`task-item bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition border border-slate-200 ${isCompleted ? 'opacity-75 bg-white/60' : ''}`} onClick={() => setEditTaskOpen(true)}>
+                    <button className="text-slate-300 hover:text-slate-500 cursor-grab" onClick={(e) => e.stopPropagation()}><i className="fa-solid fa-grip-vertical"></i></button>
+                    <input 
+                      type="checkbox" 
+                      checked={isCompleted}
+                      onChange={() => updateStatus(task.id, isCompleted ? 'todo' : 'completed')}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-5 h-5 rounded border-slate-300 text-brand-500 focus:ring-brand-500 cursor-pointer" 
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`font-semibold truncate task-title ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{task.title}</h4>
+                      <div className={`flex items-center text-xs mt-1 gap-1 ${isCompleted ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {task.dueDate && <><i className="fa-regular fa-calendar"></i> {new Date(task.dueDate).toLocaleDateString()}</>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${task.priority === 'High' ? 'bg-red-100 text-red-600' : task.priority === 'Low' ? 'bg-slate-100 text-slate-600' : 'bg-brand-50 text-brand-700'}`}>
+                        {task.priority || 'Med'}
+                      </span>
+                      {task.tags?.map((tag: string, i: number) => (
+                        <span key={i} className="px-2.5 py-1 text-xs font-semibold rounded-full bg-brand-500 text-white">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Pagination */}

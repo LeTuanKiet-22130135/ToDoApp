@@ -3,7 +3,8 @@
 import React, { useState, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/Modal';
-import { requestSignupOtp, verifySignupOtp, requestPasswordResetOtp, resetPasswordWithOtp } from '@/lib/auth-actions';
+import { requestSignupOtp, verifySignupOtp, requestPasswordResetOtp, resetPasswordWithOtp, login } from '@/lib/auth-actions';
+import { useTasks } from '@/components/TaskProvider';
 
 type AuthModalType = 'login' | 'logout' | 'changePassword' | 'forgotPassword' | 'signup' | 'otpSignup' | 'otpForgot' | 'otpChange' | 'newPassword' | null;
 
@@ -12,6 +13,8 @@ export default function AuthPage() {
   const [activeModal, setActiveModal] = useState<AuthModalType>('login');
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const { syncLocalToCloud, setAuth } = useTasks();
 
   // Form states
   const [name, setName] = useState('');
@@ -37,6 +40,8 @@ export default function AuthPage() {
     startTransition(async () => {
       try {
         await verifySignupOtp(email, otp);
+        setAuth(true);
+        await syncLocalToCloud();
         router.push('/');
       } catch (err: any) {
         setErrorMsg(err.message);
@@ -90,8 +95,17 @@ export default function AuthPage() {
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Assuming simple mock login, redirect to dashboard
-    router.push('/');
+    setErrorMsg(null);
+    startTransition(async () => {
+      try {
+        await login(email, password);
+        setAuth(true);
+        await syncLocalToCloud();
+        router.push('/');
+      } catch (err: any) {
+        setErrorMsg(err.message);
+      }
+    });
   };
 
 
@@ -146,18 +160,19 @@ export default function AuthPage() {
             <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
           </div>
           <form onSubmit={handleLoginSubmit}>
+            {errorMsg && <p className="text-sm text-red-500 mb-3 text-center">{errorMsg}</p>}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.com" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="name@company.com" disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
             </div>
             <div className="mb-2">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-semibold text-slate-700">Password</label>
                 <button type="button" onClick={() => {setErrorMsg(null); setActiveModal('forgotPassword');}} className="text-xs font-medium text-brand-600 hover:text-brand-800">Forgot?</button>
               </div>
-              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
+              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
             </div>
-            <button type="submit" className="block w-full mt-6 rounded-xl py-2.5 text-sm font-semibold bg-brand-900 hover:bg-brand-800 text-white transition shadow-sm text-center">Sign In</button>
+            <button type="submit" disabled={isPending} className="block w-full mt-6 rounded-xl py-2.5 text-sm font-semibold bg-brand-900 hover:bg-brand-800 text-white transition shadow-sm text-center disabled:opacity-50">{isPending ? 'Signing in...' : 'Sign In'}</button>
             <div className="mt-4 text-center text-sm">
               <span className="text-slate-500">Don't have an account? </span>
               <button type="button" onClick={() => {setErrorMsg(null); setActiveModal('signup');}} className="font-semibold text-brand-600 hover:text-brand-800">Sign up</button>

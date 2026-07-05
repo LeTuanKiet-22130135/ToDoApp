@@ -3,6 +3,8 @@
 import { redis } from './redis';
 import { sendOtpEmail } from './resend';
 import { prisma } from './prisma';
+import { createSession, clearSession } from './session';
+import { revalidatePath } from 'next/cache';
 
 const OTP_TTL = 300; // 5 minutes
 
@@ -10,12 +12,29 @@ function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+export async function login(email: string, passwordHash: string) {
+  if (!email || !passwordHash) throw new Error("Email and password are required");
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || user.password !== passwordHash) {
+    throw new Error("Invalid credentials");
+  }
+
+  await createSession(user.id);
+  revalidatePath('/');
+  return { success: true, user };
+}
+
+export async function logout() {
+  await clearSession();
+  revalidatePath('/');
+}
+
 export async function requestSignupOtp(name: string, email: string, passwordHash: string) {
   if (!name || !email || !passwordHash) {
     throw new Error("Missing required fields");
   }
 
-  // Check if user already exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     throw new Error("User with this email already exists");
@@ -23,12 +42,10 @@ export async function requestSignupOtp(name: string, email: string, passwordHash
 
   const otp = generateOtp();
   
-  // Store pending user data in Redis
   const cacheKey = `signup:${email}`;
   const payload = JSON.stringify({ name, passwordHash, otp });
   await redis.setex(cacheKey, OTP_TTL, payload);
 
-  // Send OTP
   await sendOtpEmail(email, otp);
   
   return { success: true, message: "OTP sent successfully" };
@@ -48,13 +65,15 @@ export async function verifySignupOtp(email: string, otpCode: string) {
     throw new Error("Incorrect OTP");
   }
 
-  // Create user in Postgres
   const user = await prisma.user.create({
     data: { name, email, password: passwordHash }
   });
 
-  // Cleanup Redis
   await redis.del(cacheKey);
+  
+  // Set session on success
+  await createSession(user.id);
+  revalidatePath('/');
 
   return { success: true, user };
 }
@@ -88,12 +107,16 @@ export async function resetPasswordWithOtp(email: string, otpCode: string, newPa
     throw new Error("Incorrect OTP");
   }
 
-  await prisma.user.update({
+  const user = await prisma.user.update({
     where: { email },
     data: { password: newPasswordHash }
   });
 
   await redis.del(cacheKey);
+  
+  // Optionally sign them in immediately
+  await createSession(user.id);
+  revalidatePath('/');
 
   return { success: true, message: "Password updated successfully" };
 }
