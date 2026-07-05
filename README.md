@@ -126,4 +126,5 @@ Open `http://localhost:3000` in your browser to view the application.
 3. Import your repository from your Git provider.
 4. In the "Environment Variables" section, add your `DATABASE_URL` pointing to your production PostgreSQL database. Also, add your `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `REDIS_URL` (from Vercel KV, Upstash, or similar) to enable OTP emails.
 5. Vercel will automatically detect that this is a Next.js project. The `package.json` includes a `postinstall` script that will automatically run `prisma generate` during the build process.
-6. Click "Deploy". Vercel will build and host your application automatically.
+6. **Important:** In the "Build & Development Settings", override the "Build Command" to be `npx prisma db push && next build`. This ensures your database schema is pushed before the Next.js build.
+7. Click "Deploy". Vercel will build and host your application automatically.
