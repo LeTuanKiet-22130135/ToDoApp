@@ -13,12 +13,48 @@ TaskFlow Web is a modern, full-stack Next.js application designed to help users 
 - Offline Storage: Dexie (IndexedDB)
 - Authentication: JWT (`jose`) with HTTP-Only Cookies
 
+## Core Features
+
+- **Real-time Search:** Filter tasks instantly by title via the search bar.
+- **Dynamic Sorting & Filtering:** Sort tasks by Priority or Date. Filter by Due Date, Priority (High/Med/Low), and custom Tags instantly on the client side.
+- **Offline First:** Fully functional without an internet connection using IndexedDB (Dexie).
+
 ## Data Syncing & Authentication
 
 - **Guest Mode:** Unauthenticated users can use the app seamlessly. Tasks are stored locally in their browser using Dexie (IndexedDB).
 - **Authentication:** Users can sign up via OTP (managed by Redis + Resend) and receive a secure JWT HTTP-Only session cookie.
 - **Offline to Cloud Sync:** Upon signing up or logging in, any locally created Dexie tasks are automatically bulk-synced to their remote PostgreSQL account.
 - **Data Security:** The application includes a fully functional logout mechanism. When authenticated, clicking the profile avatar in the header opens a dropdown menu to sign out. Logging out securely destroys the HTTP-Only cookie and instantly wipes all displayed user data from the client state.
+
+## Database Schema
+
+This project relies on Prisma and PostgreSQL for the cloud database.
+
+```prisma
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("todo")
+  priority    String   @default("medium")
+  dueDate     DateTime?
+  tags        String[]
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+```
 
 ## Folder Structure
 

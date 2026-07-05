@@ -15,10 +15,65 @@ export default function Home() {
   const router = useRouter();
   const { tasks, isLoading, updateStatus, removeTask, isAuth, logoutUser } = useTasks();
 
+  // Search & Tab Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'All' | 'Active' | 'Completed'>('All');
+
+  // Modal Filters
+  const [filterDate, setFilterDate] = useState('All Time');
+  const [filterPriority, setFilterPriority] = useState<string[]>([]);
+  const [filterTags, setFilterTags] = useState<string[]>([]);
+  
+  // Sort
+  const [sortOption, setSortOption] = useState<'priority' | 'date'>('priority');
+
+  const togglePriority = (p: string) => setFilterPriority(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+  const toggleTag = (t: string) => setFilterTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+
   const handleLogout = async () => {
     await logoutUser();
     setProfileDropdownOpen(false);
   };
+
+  const filteredTasks = (tasks || [])
+    .filter(task => {
+      // Search
+      if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      // Tab
+      if (activeTab === 'Active' && task.status === 'completed') return false;
+      if (activeTab === 'Completed' && task.status !== 'completed') return false;
+      // Modal Filters
+      if (filterPriority.length > 0 && !filterPriority.includes(task.priority || 'Med')) return false;
+      if (filterTags.length > 0 && !filterTags.some(tag => (task.tags || []).includes(tag))) return false;
+      
+      if (filterDate !== 'All Time' && task.dueDate) {
+        const dueDate = new Date(task.dueDate);
+        const now = new Date();
+        if (filterDate === 'Today') {
+          if (dueDate.toDateString() !== now.toDateString()) return false;
+        } else if (filterDate === 'This Month') {
+          if (dueDate.getMonth() !== now.getMonth() || dueDate.getFullYear() !== now.getFullYear()) return false;
+        } else if (filterDate === 'This Year') {
+          if (dueDate.getFullYear() !== now.getFullYear()) return false;
+        }
+      } else if (filterDate !== 'All Time' && !task.dueDate) {
+        // If they filter by a date but task has no due date, hide it
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortOption === 'priority') {
+        const pOrder: Record<string, number> = { 'High': 3, 'Med': 2, 'Low': 1 };
+        const pA = pOrder[a.priority || 'Med'] || 0;
+        const pB = pOrder[b.priority || 'Med'] || 0;
+        if (pA !== pB) return pB - pA;
+      }
+      // Date sort (newest first based on createdAt or dueDate fallback)
+      const dateA = new Date(a.createdAt || a.dueDate || 0).getTime();
+      const dateB = new Date(b.createdAt || b.dueDate || 0).getTime();
+      return dateB - dateA;
+    });
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -30,8 +85,8 @@ export default function Home() {
         <div className="flex items-center gap-6">
           <div className="relative">
             <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input type="text" placeholder="Search tasks..." className="bg-slate-100 rounded-lg pl-9 pr-8 py-2 text-sm w-64 border-0 focus:ring-2 focus:ring-brand-500 placeholder-slate-400 outline-none" />
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i className="fa-solid fa-xmark"></i></button>
+            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search tasks..." className="bg-slate-100 rounded-lg pl-9 pr-8 py-2 text-sm w-64 border-0 focus:ring-2 focus:ring-brand-500 placeholder-slate-400 outline-none" />
+            {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i className="fa-solid fa-xmark"></i></button>}
           </div>
           <button className="text-slate-500 hover:text-slate-800 text-lg transition"><i className="fa-regular fa-bell"></i></button>
           {isAuth ? (
@@ -63,12 +118,12 @@ export default function Home() {
           <div className="flex items-end justify-between mb-8">
             <div>
               <h2 className="text-3xl font-bold text-slate-900 mb-1">Today's Focus</h2>
-              <p className="text-slate-500 text-sm">You have {tasks?.filter(t => t.status !== 'completed').length || 0} tasks to complete.</p>
+              <p className="text-slate-500 text-sm">You have {filteredTasks.filter(t => t.status !== 'completed').length || 0} tasks to complete.</p>
             </div>
             <div className="flex gap-2 text-sm font-medium">
-              <button className="filter-btn active px-5 py-1.5 border border-transparent rounded-full transition">All</button>
-              <button className="filter-btn px-4 py-1.5 border border-transparent rounded-full hover:bg-slate-100 transition">Active</button>
-              <button className="filter-btn px-4 py-1.5 border border-transparent rounded-full hover:bg-slate-100 transition">Completed</button>
+              <button onClick={() => setActiveTab('All')} className={`filter-btn px-5 py-1.5 border border-transparent rounded-full transition ${activeTab === 'All' ? 'active' : 'hover:bg-slate-100'}`}>All</button>
+              <button onClick={() => setActiveTab('Active')} className={`filter-btn px-4 py-1.5 border border-transparent rounded-full transition ${activeTab === 'Active' ? 'active' : 'hover:bg-slate-100'}`}>Active</button>
+              <button onClick={() => setActiveTab('Completed')} className={`filter-btn px-4 py-1.5 border border-transparent rounded-full transition ${activeTab === 'Completed' ? 'active' : 'hover:bg-slate-100'}`}>Completed</button>
             </div>
           </div>
 
@@ -97,10 +152,10 @@ export default function Home() {
           <div className="flex flex-col gap-3">
             {isLoading ? (
               <div className="text-center py-8 text-slate-400">Loading tasks...</div>
-            ) : tasks?.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">No tasks yet. Create one!</div>
+            ) : filteredTasks.length === 0 ? (
+              <div className="text-center py-8 text-slate-400">No tasks found.</div>
             ) : (
-              tasks?.map((task: any) => {
+              filteredTasks.map((task: any) => {
                 const isCompleted = task.status === 'completed';
                 return (
                   <div key={task.id} className={`task-item bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition border border-slate-200 ${isCompleted ? 'opacity-75 bg-white/60' : ''}`} onClick={() => setEditTaskOpen(true)}>
@@ -157,7 +212,7 @@ export default function Home() {
         <div className="px-6 py-5 flex flex-col gap-5 flex-1 overflow-y-auto">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Date</label>
-            <select className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition">
+            <select value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition">
               <option>All Time</option>
               <option>Today</option>
               <option>This Month</option>
@@ -169,15 +224,15 @@ export default function Home() {
             <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-                <input type="checkbox" className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 border-slate-300" />
+                <input type="checkbox" checked={filterPriority.includes('Low')} onChange={() => togglePriority('Low')} className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 border-slate-300" />
                 <span className="text-sm font-medium text-slate-700">Low</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-                <input type="checkbox" className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 border-slate-300" />
+                <input type="checkbox" checked={filterPriority.includes('Med')} onChange={() => togglePriority('Med')} className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 border-slate-300" />
                 <span className="text-sm font-medium text-slate-700">Medium</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-                <input type="checkbox" className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 border-slate-300" />
+                <input type="checkbox" checked={filterPriority.includes('High')} onChange={() => togglePriority('High')} className="w-4 h-4 rounded text-brand-500 focus:ring-brand-500 border-slate-300" />
                 <span className="text-sm font-medium text-slate-700">High</span>
               </label>
             </div>
@@ -187,26 +242,26 @@ export default function Home() {
             <label className="block text-sm font-semibold text-slate-700 mb-2">Tags</label>
             <div className="flex flex-wrap gap-2">
               <label className="cursor-pointer">
-                <input type="checkbox" className="peer sr-only" />
+                <input type="checkbox" checked={filterTags.includes('Work')} onChange={() => toggleTag('Work')} className="peer sr-only" />
                 <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">Work</span>
               </label>
               <label className="cursor-pointer">
-                <input type="checkbox" className="peer sr-only" />
+                <input type="checkbox" checked={filterTags.includes('Design')} onChange={() => toggleTag('Design')} className="peer sr-only" />
                 <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">Design</span>
               </label>
               <label className="cursor-pointer">
-                <input type="checkbox" className="peer sr-only" />
+                <input type="checkbox" checked={filterTags.includes('Research')} onChange={() => toggleTag('Research')} className="peer sr-only" />
                 <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">Research</span>
               </label>
               <label className="cursor-pointer">
-                <input type="checkbox" className="peer sr-only" />
+                <input type="checkbox" checked={filterTags.includes('Personal')} onChange={() => toggleTag('Personal')} className="peer sr-only" />
                 <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 text-sm font-medium peer-checked:bg-brand-50 peer-checked:text-brand-700 peer-checked:border-brand-500 hover:bg-slate-50 transition">Personal</span>
               </label>
             </div>
           </div>
         </div>
         <div className="border-t border-slate-100 px-6 py-4 bg-slate-50 rounded-b-2xl flex">
-          <button onClick={() => setFilterModalOpen(false)} className="rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 transition mr-auto">Clear All</button>
+          <button onClick={() => { setFilterDate('All Time'); setFilterPriority([]); setFilterTags([]); }} className="rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 transition mr-auto">Clear All</button>
           <button onClick={() => setFilterModalOpen(false)} className="rounded-xl px-5 py-2.5 text-sm font-semibold bg-brand-900 hover:bg-brand-800 text-white transition shadow-sm">Apply Filters</button>
         </div>
       </Modal>
@@ -219,18 +274,18 @@ export default function Home() {
         </div>
         <div className="px-6 py-5">
           <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-brand-500 bg-brand-50 hover:bg-brand-50 transition">
-              <input type="radio" name="sortOptions" defaultChecked className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-brand-500" />
+            <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl border transition ${sortOption === 'priority' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input type="radio" name="sortOptions" checked={sortOption === 'priority'} onChange={() => setSortOption('priority')} className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-brand-500" />
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-brand-900">Priority</span>
-                <span className="text-xs text-brand-600 font-medium">High to Low</span>
+                <span className={`text-sm font-bold ${sortOption === 'priority' ? 'text-brand-900' : 'text-slate-800'}`}>Priority</span>
+                <span className={`text-xs font-medium ${sortOption === 'priority' ? 'text-brand-600' : 'text-slate-500'}`}>High to Low</span>
               </div>
             </label>
-            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-              <input type="radio" name="sortOptions" className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-slate-300" />
+            <label className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl border transition ${sortOption === 'date' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <input type="radio" name="sortOptions" checked={sortOption === 'date'} onChange={() => setSortOption('date')} className="w-4 h-4 text-brand-500 focus:ring-brand-500 border-slate-300" />
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-slate-800">Date</span>
-                <span className="text-xs text-slate-500 font-medium">Newest first</span>
+                <span className={`text-sm font-bold ${sortOption === 'date' ? 'text-brand-900' : 'text-slate-800'}`}>Date</span>
+                <span className={`text-xs font-medium ${sortOption === 'date' ? 'text-brand-600' : 'text-slate-500'}`}>Newest first</span>
               </div>
             </label>
           </div>

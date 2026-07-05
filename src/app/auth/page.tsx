@@ -170,7 +170,7 @@ export default function AuthPage() {
                 <label className="block text-sm font-semibold text-slate-700">Password</label>
                 <button type="button" onClick={() => {setErrorMsg(null); setActiveModal('forgotPassword');}} className="text-xs font-medium text-brand-600 hover:text-brand-800">Forgot?</button>
               </div>
-              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
+              <input type="password" required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
             </div>
             <button type="submit" disabled={isPending} className="block w-full mt-6 rounded-xl py-2.5 text-sm font-semibold bg-brand-900 hover:bg-brand-800 text-white transition shadow-sm text-center disabled:opacity-50">{isPending ? 'Signing in...' : 'Sign In'}</button>
             <div className="mt-4 text-center text-sm">
@@ -200,7 +200,7 @@ export default function AuthPage() {
             </div>
             <div className="mb-2">
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
-              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
+              <input type="password" required autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
             </div>
             <button type="submit" disabled={isPending} className="w-full mt-6 rounded-xl py-2.5 text-sm font-semibold bg-brand-900 hover:bg-brand-800 text-white transition shadow-sm disabled:opacity-50">{isPending ? 'Sending OTP...' : 'Sign Up'}</button>
             <div className="mt-4 text-center text-sm">
@@ -281,12 +281,12 @@ export default function AuthPage() {
             {errorMsg && <p className="text-sm text-red-500 mb-3">{errorMsg}</p>}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">New Password</label>
-              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
+              <input type="password" required autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
               <p className="text-[11px] text-slate-500 mt-1">Must be at least 8 characters.</p>
             </div>
             <div className="mb-6">
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirm Password</label>
-              <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
+              <input type="password" required autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} disabled={isPending} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none transition" />
             </div>
             <button type="submit" disabled={isPending} className="w-full rounded-xl py-2.5 text-sm font-semibold bg-brand-900 hover:bg-brand-800 text-white transition shadow-sm mb-3 disabled:opacity-50">{isPending ? 'Updating...' : 'Reset Password'}</button>
             <button type="button" onClick={() => {setErrorMsg(null); setActiveModal('login');}} className="w-full rounded-xl py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">Back to Login</button>
