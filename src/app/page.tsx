@@ -26,6 +26,8 @@ export default function Home() {
   
   // Sort
   const [sortOption, setSortOption] = useState<'priority-desc' | 'priority-asc' | 'date-desc' | 'date-asc'>('priority-desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const TASKS_PER_PAGE = 8;
 
   const togglePriority = (p: string) => setFilterPriority(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
   const toggleTag = (t: string) => setFilterTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
@@ -90,6 +92,10 @@ export default function Home() {
       }
       return 0;
     });
+
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / TASKS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedTasks = filteredTasks.slice((safeCurrentPage - 1) * TASKS_PER_PAGE, safeCurrentPage * TASKS_PER_PAGE);
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -171,7 +177,7 @@ export default function Home() {
             ) : filteredTasks.length === 0 ? (
               <div className="text-center py-8 text-slate-400">No tasks found.</div>
             ) : (
-              filteredTasks.map((task: any) => {
+              paginatedTasks.map((task: any) => {
                 const isCompleted = task.status === 'completed';
                 return (
                   <div key={task.id} className={`task-item bg-white rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition border border-slate-200 ${isCompleted ? 'opacity-75 bg-white/60' : ''}`} onClick={() => setEditingTask(task)}>
@@ -204,17 +210,21 @@ export default function Home() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between mt-8 text-sm font-medium border-t border-slate-200 pt-6">
-            <button className="text-slate-400 flex items-center gap-1 hover:text-slate-600 transition" disabled><i className="fa-solid fa-chevron-left text-xs"></i> Previous</button>
-            <div className="flex items-center gap-1">
-              <button className="page-btn active">1</button>
-              <button className="page-btn">2</button>
-              <button className="page-btn">3</button>
-              <span className="text-slate-400 mx-1">...</span>
-              <button className="page-btn">10</button>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center mt-8 text-sm font-medium border-t border-slate-200 pt-6">
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`page-btn ${safeCurrentPage === page ? 'active' : ''}`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
             </div>
-            <button className="text-brand-600 hover:text-brand-900 flex items-center gap-1 transition">Next <i className="fa-solid fa-chevron-right text-xs"></i></button>
-          </div>
+          )}
 
         </div>
       </main>
