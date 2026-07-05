@@ -1,0 +1,99 @@
+"use server";
+
+import { redis } from './redis';
+import { sendOtpEmail } from './resend';
+import { prisma } from './prisma';
+
+const OTP_TTL = 300; // 5 minutes
+
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+export async function requestSignupOtp(name: string, email: string, passwordHash: string) {
+  if (!name || !email || !passwordHash) {
+    throw new Error("Missing required fields");
+  }
+
+  // Check if user already exists
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw new Error("User with this email already exists");
+  }
+
+  const otp = generateOtp();
+  
+  // Store pending user data in Redis
+  const cacheKey = `signup:${email}`;
+  const payload = JSON.stringify({ name, passwordHash, otp });
+  await redis.setex(cacheKey, OTP_TTL, payload);
+
+  // Send OTP
+  await sendOtpEmail(email, otp);
+  
+  return { success: true, message: "OTP sent successfully" };
+}
+
+export async function verifySignupOtp(email: string, otpCode: string) {
+  const cacheKey = `signup:${email}`;
+  const cachedData = await redis.get(cacheKey);
+
+  if (!cachedData) {
+    throw new Error("OTP expired or invalid");
+  }
+
+  const { name, passwordHash, otp } = JSON.parse(cachedData);
+
+  if (otp !== otpCode) {
+    throw new Error("Incorrect OTP");
+  }
+
+  // Create user in Postgres
+  const user = await prisma.user.create({
+    data: { name, email, password: passwordHash }
+  });
+
+  // Cleanup Redis
+  await redis.del(cacheKey);
+
+  return { success: true, user };
+}
+
+export async function requestPasswordResetOtp(email: string) {
+  if (!email) throw new Error("Email is required");
+
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (!existingUser) {
+    throw new Error("User not found");
+  }
+
+  const otp = generateOtp();
+  const cacheKey = `reset:${email}`;
+  
+  await redis.setex(cacheKey, OTP_TTL, otp);
+  await sendOtpEmail(email, otp);
+
+  return { success: true, message: "OTP sent successfully" };
+}
+
+export async function resetPasswordWithOtp(email: string, otpCode: string, newPasswordHash: string) {
+  const cacheKey = `reset:${email}`;
+  const cachedOtp = await redis.get(cacheKey);
+
+  if (!cachedOtp) {
+    throw new Error("OTP expired or invalid");
+  }
+
+  if (cachedOtp !== otpCode) {
+    throw new Error("Incorrect OTP");
+  }
+
+  await prisma.user.update({
+    where: { email },
+    data: { password: newPasswordHash }
+  });
+
+  await redis.del(cacheKey);
+
+  return { success: true, message: "Password updated successfully" };
+}
