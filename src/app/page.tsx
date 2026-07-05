@@ -366,12 +366,9 @@ export default function Home() {
 
             <div className="pt-5 flex justify-between items-center mt-6">
               <button onClick={() => { removeTask(editingTask.id); setEditingTask(null); }} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition">
-                <i className="fa-regular fa-trash-can"></i> Delete Task
+                <i className="fa-regular fa-trash-can"></i> Delete
               </button>
-              <div className="flex gap-3">
-                <button onClick={() => setEditingTask(null)} className="px-6 py-2.5 rounded-xl bg-brand-100 text-brand-900 text-sm font-semibold hover:bg-brand-200 transition">Cancel</button>
-                <button onClick={() => setEditingTask(null)} className="px-6 py-2.5 rounded-xl bg-brand-900 text-white text-sm font-semibold hover:bg-brand-800 transition shadow-sm">Save Changes</button>
-              </div>
+              <button onClick={() => setEditingTask(null)} className="px-6 py-2.5 rounded-xl bg-brand-900 text-white text-sm font-semibold hover:bg-brand-800 transition shadow-sm">Save</button>
             </div>
           </div>
         )}
