@@ -7,7 +7,7 @@ import { useTasks } from '@/components/TaskProvider';
 
 export default function AddTaskPage() {
   const router = useRouter();
-  const { addTask } = useTasks();
+  const { addTask, isAuth } = useTasks();
   
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -51,12 +51,18 @@ export default function AddTaskPage() {
           <Link href="/" className="text-2xl font-bold text-brand-900 text-decoration-none hover:text-brand-800 transition">TaskFlow</Link>
         </div>
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition flex items-center gap-2 text-decoration-none">
+          <Link href="/" className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition flex items-center gap-2 text-decoration-none hover:underline">
             <i className="fa-solid fa-arrow-left"></i> Back to Dashboard
           </Link>
-          <Link href="/auth" className="w-8 h-8 rounded-full bg-slate-300 overflow-hidden cursor-pointer border border-slate-200 ml-4 block">
-            <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" className="w-full h-full object-cover" />
-          </Link>
+          {isAuth ? (
+            <Link href="/auth" className="w-8 h-8 rounded-full bg-slate-300 overflow-hidden cursor-pointer border border-slate-200 ml-4 block hover:ring-2 hover:ring-brand-500 transition">
+              <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" className="w-full h-full object-cover" />
+            </Link>
+          ) : (
+            <Link href="/auth" className="bg-brand-900 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-brand-800 transition hover:shadow-md hover:underline ml-4">
+              Sign In
+            </Link>
+          )}
         </div>
       </header>
 

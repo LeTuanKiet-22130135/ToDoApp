@@ -10,7 +10,7 @@ export default function Home() {
   const [isFilterModalOpen, setFilterModalOpen] = useState(false);
   const [isSortModalOpen, setSortModalOpen] = useState(false);
   const [isEditTaskOpen, setEditTaskOpen] = useState(false);
-  const { tasks, isLoading, updateStatus, removeTask } = useTasks();
+  const { tasks, isLoading, updateStatus, removeTask, isAuth } = useTasks();
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -25,10 +25,16 @@ export default function Home() {
             <input type="text" placeholder="Search tasks..." className="bg-slate-100 rounded-lg pl-9 pr-8 py-2 text-sm w-64 border-0 focus:ring-2 focus:ring-brand-500 placeholder-slate-400 outline-none" />
             <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><i className="fa-solid fa-xmark"></i></button>
           </div>
-          <button className="text-slate-500 hover:text-slate-800 text-lg"><i className="fa-regular fa-bell"></i></button>
-          <Link href="/auth" className="w-8 h-8 rounded-full bg-slate-300 overflow-hidden cursor-pointer border border-slate-200 block">
-            <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" className="w-full h-full object-cover" />
-          </Link>
+          <button className="text-slate-500 hover:text-slate-800 text-lg transition"><i className="fa-regular fa-bell"></i></button>
+          {isAuth ? (
+            <Link href="/auth" className="w-8 h-8 rounded-full bg-slate-300 overflow-hidden cursor-pointer border border-slate-200 block hover:ring-2 hover:ring-brand-500 transition">
+              <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" className="w-full h-full object-cover" />
+            </Link>
+          ) : (
+            <Link href="/auth" className="bg-brand-900 text-white text-sm font-semibold px-5 py-2 rounded-xl hover:bg-brand-800 transition hover:shadow-md hover:underline">
+              Sign In
+            </Link>
+          )}
         </div>
       </header>
 

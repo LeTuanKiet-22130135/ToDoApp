@@ -10,6 +10,14 @@ TaskFlow Web is a modern, full-stack Next.js application designed to help users 
 - Database ORM: Prisma
 - Database: PostgreSQL
 - Caching/OTP State: Redis
+- Offline Storage: Dexie (IndexedDB)
+- Authentication: JWT (`jose`) with HTTP-Only Cookies
+
+## Data Syncing & Authentication
+
+- **Guest Mode:** Unauthenticated users can use the app seamlessly. Tasks are stored locally in their browser using Dexie (IndexedDB).
+- **Authentication:** Users can sign up via OTP (managed by Redis + Resend) and receive a secure JWT HTTP-Only session cookie.
+- **Offline to Cloud Sync:** Upon signing up or logging in, any locally created Dexie tasks are automatically bulk-synced to their remote PostgreSQL account.
 
 ## Folder Structure
 
